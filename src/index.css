@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* =====================================================
+   PREMIUM DESIGN TOKENS
+   ===================================================== */
+
+@theme {
+  /* Surfaces — deep graphite with tonal variation */
+  --color-editor-bg: #0C0E13;
+  --color-panel-bg: #12151C;
+
+  /* Accent — muted indigo/blue */
+  --color-accent: #5E6AD2;
+  --color-accent-hover: #7A85F0;
+
+  /* Semantics */
+  --color-success: #3ecf71;
+  --color-error: #e5484d;
+  --color-warning: #f0a641;
+
+  /* Typography */
+  --color-text-primary: #EDEDEF;
+  --color-text-secondary: #8A8F98;
+  --color-text-tertiary: #565B66;
+
+  /* Borders — ultra-subtle */
+  --color-border: rgba(255, 255, 255, 0.05);
+
+  /* Fonts */
+  --font-family-code: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-family-ui: 'Inter', -apple-system, system-ui, sans-serif;
+
+  /* Animations */
+  --animate-fadeIn: fadeIn 0.2s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-spin-slow: spin 2s linear infinite;
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scrollbar — nearly invisible */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* Global Styles */
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0C0E13;
+  color: #ededef;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  letter-spacing: -0.011em;
+}
+
+code,
+pre,
+.code-editor {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+/* Utilities */
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.2s ease-out;
+}
+
+.glass {
+  background: rgba(22, 22, 24, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Focus — subtle ring */
+*:focus-visible {
+  outline: 1px solid rgba(110, 123, 242, 0.5);
+  outline-offset: 1px;
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(110, 123, 242, 0.25);
+  color: #ededef;
+}
