@@ -1,14 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { Code2, Clock, Users, Folder, ArrowRight, Plus, Terminal } from 'lucide-react';
 
-/**
- * Dashboard - Premium Minimalist Design
- * No cards, just typography and negative space.
- */
 export function Dashboard() {
     const navigate = useNavigate();
 
-    // Stats - displayed as text row
     const stats = [
         { label: 'Total Sessions', value: '24' },
         { label: 'Hours Coded', value: '156' },
@@ -24,7 +19,6 @@ export function Dashboard() {
 
     return (
         <div className="max-w-5xl mx-auto p-8 lg:p-12">
-            {/* Header / Welcome */}
             <div className="mb-16">
                 <h1 className="text-3xl font-semibold text-text-primary mb-2 tracking-tight">
                     Welcome back
@@ -34,19 +28,17 @@ export function Dashboard() {
                 </p>
             </div>
 
-            {/* Stats Row - Minimal Text Only */}
+            {/* stats */}
             <div className="flex flex-wrap gap-12 mb-16 border-b border-white/5 pb-8">
-                {stats.map((stat, index) => (
-                    <div key={index} className="flex flex-col">
+                {stats.map((stat, i) => (
+                    <div key={i} className="flex flex-col">
                         <span className="text-text-secondary text-xs uppercase tracking-wider font-medium mb-1">{stat.label}</span>
                         <span className="text-2xl font-medium text-text-primary font-code">{stat.value}</span>
                     </div>
                 ))}
             </div>
 
-            {/* Layout Split */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                {/* Main Column */}
                 <div className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wide">Recent Sessions</h2>
@@ -81,7 +73,7 @@ export function Dashboard() {
                     </div>
                 </div>
 
-                {/* Sidebar Column - Quick Actions */}
+                {/* quick actions */}
                 <div>
                     <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wide mb-6">Quick Actions</h2>
 

@@ -8,38 +8,22 @@ import { login, register } from '../services/authService';
 const API_URL = import.meta.env.VITE_API_URL ||
     (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : `http://${window.location.hostname}:5000/api`);
 
-/**
- * Login/Signup Page — Premium Design
- */
 export function LoginPage() {
     const navigate = useNavigate();
-    const [mode, setMode] = useState('login'); // 'login' | 'signup'
-    const [step, setStep] = useState('auth'); // 'auth' | 'username'
+    const [mode, setMode] = useState('login');
+    const [step, setStep] = useState('auth');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [serverStatus, setServerStatus] = useState('checking'); // 'checking' | 'online' | 'offline'
+    const [serverStatus, setServerStatus] = useState('checking');
 
-    // Check server status on mount
+    // check backend on mount
     useEffect(() => {
-        const checkServer = async () => {
-            try {
-                const response = await fetch(`${API_URL}/health`, {
-                    method: 'GET',
-                    signal: AbortSignal.timeout(5000)
-                });
-                if (response.ok) {
-                    setServerStatus('online');
-                } else {
-                    setServerStatus('offline');
-                }
-            } catch (err) {
-                setServerStatus('offline');
-            }
-        };
-        checkServer();
+        fetch(`${API_URL}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) })
+            .then(r => setServerStatus(r.ok ? 'online' : 'offline'))
+            .catch(() => setServerStatus('offline'));
     }, []);
 
     const handleEmailAuth = async (e) => {
@@ -67,7 +51,7 @@ export function LoginPage() {
         }
     };
 
-    const handleGoogleAuth = async () => {
+    const handleGoogleAuth = () => {
         setError('Google OAuth requires API key setup. Please use email login.');
     };
 
@@ -85,7 +69,6 @@ export function LoginPage() {
         }
     };
 
-    // Server Status Pill
     const ServerStatusBadge = () => (
         <div className={`
             inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide uppercase border mb-6 transition-colors duration-300
@@ -106,12 +89,11 @@ export function LoginPage() {
         </div>
     );
 
-    // Common Input Styles
     const inputClasses = "w-full pl-10 pr-4 py-3 bg-panel-bg border border-white/5 rounded-xl text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-accent/50 focus:border-accent/50 transition-all font-ui text-[15px]";
     const labelClasses = "block text-xs font-medium text-text-secondary mb-2 uppercase tracking-wide";
     const iconClasses = "absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint group-focus-within:text-accent transition-colors";
 
-    // Username Step
+    // username step
     if (step === 'username') {
         return (
             <div className="min-h-screen relative overflow-hidden bg-editor-bg font-ui flex flex-col items-center justify-center p-6">
@@ -158,7 +140,7 @@ export function LoginPage() {
                                 disabled={isLoading || !username.trim() || username.length < 3}
                                 className="w-full bg-accent text-white py-3 rounded-xl font-medium hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2 group"
                             >
-                                {isLoading ? 'Creating...' : 'Calculate Identity'}
+                                {isLoading ? 'Creating...' : 'Create Account'}
                                 {!isLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />}
                             </button>
 
@@ -176,7 +158,6 @@ export function LoginPage() {
         );
     }
 
-    // Main Auth Step
     return (
         <div className="min-h-screen relative overflow-hidden bg-editor-bg font-ui flex flex-col items-center justify-center p-6">
             <AnimatedBackground />
@@ -194,7 +175,6 @@ export function LoginPage() {
                     <div className="p-5">
                         <div className="flex justify-center"><ServerStatusBadge /></div>
 
-                        {/* Toggle */}
                         <div className="grid grid-cols-2 gap-1 p-1 bg-black/20 rounded-xl mb-6">
                             <button
                                 onClick={() => { setMode('login'); setError(''); }}

@@ -1,14 +1,8 @@
-/**
- * Authentication Service
- * Handles login, signup, and token management
- */
+// auth stuff - login, signup, token mgmt
 
 const API_URL = import.meta.env.VITE_API_URL ||
     (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : `http://${window.location.hostname}:5000/api`);
 
-/**
- * Register a new user (signup)
- */
 export const register = async (email, password, username) => {
     const response = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
@@ -22,7 +16,6 @@ export const register = async (email, password, username) => {
         throw new Error(data.error || data.message || 'Registration failed');
     }
 
-    // Store token and user info
     if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -33,23 +26,17 @@ export const register = async (email, password, username) => {
     return data;
 };
 
-/**
- * Login user
- */
 export const login = async (email, password) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
     });
 
-    const data = await response.json();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || 'Login failed');
 
-    if (!response.ok) {
-        throw new Error(data.error || data.message || 'Login failed');
-    }
-
-    // Store token and user info
+    // save session
     if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -60,9 +47,6 @@ export const login = async (email, password) => {
     return data;
 };
 
-/**
- * Logout user
- */
 export const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -71,38 +55,22 @@ export const logout = () => {
     localStorage.removeItem('displayName');
 };
 
-/**
- * Get current user from localStorage
- */
 export const getCurrentUser = () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-        try {
-            return JSON.parse(userStr);
-        } catch {
-            return null;
-        }
+    try {
+        const raw = localStorage.getItem('user');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
     }
-    return null;
 };
 
-/**
- * Get auth token
- */
-export const getToken = () => {
-    return localStorage.getItem('token');
-};
+export const getToken = () => localStorage.getItem('token');
 
-/**
- * Check if user is authenticated
- */
 export const isAuthenticated = () => {
     return localStorage.getItem('isAuthenticated') === 'true';
 };
 
-/**
- * API fetch with auth header
- */
+// fetch wrapper that attaches auth header
 export const authFetch = async (url, options = {}) => {
     const token = getToken();
     const headers = {
@@ -114,10 +82,5 @@ export const authFetch = async (url, options = {}) => {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${url}`, {
-        ...options,
-        headers
-    });
-
-    return response;
+    return fetch(`${API_URL}${url}`, { ...options, headers });
 };

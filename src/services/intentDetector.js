@@ -1,8 +1,6 @@
-/**
- * Intent Detection Engine
- * Analyzes user editing patterns and classifies their current intent.
- * 
- * Intents: building, exploring, experimenting, refactoring, confused, proposing
+/*
+ * Intent detection - analyzes editing patterns to figure out what the user is doing
+ * intents: building, exploring, experimenting, refactoring, confused, proposing
  */
 
 const INTENTS = {
@@ -14,12 +12,12 @@ const INTENTS = {
     PROPOSING: { key: 'proposing', emoji: '💡', label: 'Proposing', color: '#f0a641' },
 };
 
-// Detection thresholds
-const CLASSIFY_INTERVAL_MS = 3000;    // Classify every 3 seconds
-const IDLE_THRESHOLD_MS = 5000;       // 5s idle = exploring
-const REWRITE_RATIO_THRESHOLD = 0.6;  // >60% deletions = experimenting
-const COMMENT_RATIO_THRESHOLD = 0.5;  // >50% comment chars = proposing
-const UNDO_BURST_THRESHOLD = 3;       // 3+ undos in window = confused
+// thresholds
+const CLASSIFY_INTERVAL = 3000;
+const IDLE_THRESHOLD = 5000;
+const REWRITE_RATIO = 0.6;          // >60% deletions = experimenting
+const COMMENT_RATIO = 0.5;
+const UNDO_BURST = 3;               // 3+ undos = confused
 
 class IntentDetector {
     constructor() {
@@ -33,30 +31,23 @@ class IntentDetector {
         this._undoCount = 0;
     }
 
-    /** Reset all accumulated metrics */
     _freshMetrics() {
         return {
-            charsAdded: 0,
-            charsDeleted: 0,
-            linesAdded: 0,
-            linesDeleted: 0,
-            cursorMoves: 0,
-            undoRedoCount: 0,
-            commentCharsAdded: 0,
-            totalContentChanges: 0,
-            renamePatterns: 0,  // consecutive same-length replacements
+            charsAdded: 0, charsDeleted: 0,
+            linesAdded: 0, linesDeleted: 0,
+            cursorMoves: 0, undoRedoCount: 0,
+            commentCharsAdded: 0, totalContentChanges: 0,
+            renamePatterns: 0,
         };
     }
 
-    /** Start the periodic classification loop */
     start(onIntentChange) {
         this._onIntentChange = onIntentChange;
         this._classifyTimer = setInterval(() => {
             this._classify();
-        }, CLASSIFY_INTERVAL_MS);
+        }, CLASSIFY_INTERVAL);
     }
 
-    /** Stop the classification loop */
     stop() {
         if (this._classifyTimer) {
             clearInterval(this._classifyTimer);
@@ -65,131 +56,89 @@ class IntentDetector {
         this._onIntentChange = null;
     }
 
-    /**
-     * Feed a code change event into the detector.
-     * Called from CodeEditor on every onChange event.
-     */
+    // called from CodeEditor on every onChange
     recordChange(changeEvent) {
         this._lastEditTime = Date.now();
         const { text, rangeLength, isUndo, isRedo } = changeEvent;
 
-        const addedLen = text ? text.length : 0;
-        const deletedLen = rangeLength || 0;
+        const added = text ? text.length : 0;
+        const deleted = rangeLength || 0;
 
-        this._metrics.charsAdded += addedLen;
-        this._metrics.charsDeleted += deletedLen;
+        this._metrics.charsAdded += added;
+        this._metrics.charsDeleted += deleted;
         this._metrics.totalContentChanges += 1;
 
-        // Count newlines added/removed
         if (text) {
-            const newlines = (text.match(/\n/g) || []).length;
-            this._metrics.linesAdded += newlines;
+            this._metrics.linesAdded += (text.match(/\n/g) || []).length;
         }
-        if (deletedLen > 0) {
-            this._metrics.linesDeleted += 1; // approximate
-        }
+        if (deleted > 0) this._metrics.linesDeleted += 1;
 
-        // Check for undo/redo bursts
-        if (isUndo || isRedo) {
-            this._metrics.undoRedoCount += 1;
-        }
+        if (isUndo || isRedo) this._metrics.undoRedoCount += 1;
 
-        // Check for comment patterns (// or /* or # or """)
+        // check for comment patterns
         if (text && /^\s*(\/\/|\/\*|\*|#|"""|'''|<!--)/.test(text)) {
-            this._metrics.commentCharsAdded += addedLen;
+            this._metrics.commentCharsAdded += added;
         }
 
-        // Check for rename patterns: same-length replacement (delete N, add N)
-        if (deletedLen > 2 && addedLen > 2 && Math.abs(deletedLen - addedLen) <= 2) {
+        // rename detection: similar-length replacement
+        if (deleted > 2 && added > 2 && Math.abs(deleted - added) <= 2) {
             this._metrics.renamePatterns += 1;
         }
     }
 
-    /** Record a cursor-only movement (no edit) */
     recordCursorMove() {
         this._metrics.cursorMoves += 1;
     }
 
-    /** Record an undo/redo action */
     recordUndoRedo() {
         this._metrics.undoRedoCount += 1;
     }
 
-    /** Core classification logic */
     _classify() {
         const m = this._metrics;
-        const idleTime = Date.now() - this._lastEditTime;
-        const totalChars = m.charsAdded + m.charsDeleted;
+        const idle = Date.now() - this._lastEditTime;
+        const total = m.charsAdded + m.charsDeleted;
 
-        let newIntent;
+        let intent;
 
-        // Priority 1: Confused — lots of undo/redo with little net progress
-        if (m.undoRedoCount >= UNDO_BURST_THRESHOLD) {
-            newIntent = INTENTS.CONFUSED;
-        }
-        // Priority 2: Exploring — no edits, just moving cursor or idle
-        else if (idleTime > IDLE_THRESHOLD_MS && totalChars === 0) {
-            newIntent = INTENTS.EXPLORING;
-        }
-        // Priority 3: Proposing — mostly writing comments
-        else if (
-            m.commentCharsAdded > 0 &&
-            totalChars > 0 &&
-            m.commentCharsAdded / m.charsAdded > COMMENT_RATIO_THRESHOLD
-        ) {
-            newIntent = INTENTS.PROPOSING;
-        }
-        // Priority 4: Experimenting — high deletion ratio
-        else if (
-            totalChars > 10 &&
-            m.charsDeleted / totalChars > REWRITE_RATIO_THRESHOLD
-        ) {
-            newIntent = INTENTS.EXPERIMENTING;
-        }
-        // Priority 5: Refactoring — rename patterns (replace same-length blocks)
-        else if (m.renamePatterns >= 2) {
-            newIntent = INTENTS.REFACTORING;
-        }
-        // Priority 6: Building — steady net additions
-        else if (m.charsAdded > 10 && m.charsAdded > m.charsDeleted * 2) {
-            newIntent = INTENTS.BUILDING;
-        }
-        // Priority 7: Exploring with cursor activity
-        else if (m.cursorMoves > 3 && totalChars < 5) {
-            newIntent = INTENTS.EXPLORING;
-        }
-        // Default: keep current or default to exploring
-        else if (totalChars === 0) {
-            newIntent = INTENTS.EXPLORING;
+        if (m.undoRedoCount >= UNDO_BURST) {
+            intent = INTENTS.CONFUSED;
+        } else if (idle > IDLE_THRESHOLD && total === 0) {
+            intent = INTENTS.EXPLORING;
+        } else if (m.commentCharsAdded > 0 && total > 0 && m.commentCharsAdded / m.charsAdded > COMMENT_RATIO) {
+            intent = INTENTS.PROPOSING;
+        } else if (total > 10 && m.charsDeleted / total > REWRITE_RATIO) {
+            intent = INTENTS.EXPERIMENTING;
+        } else if (m.renamePatterns >= 2) {
+            intent = INTENTS.REFACTORING;
+        } else if (m.charsAdded > 10 && m.charsAdded > m.charsDeleted * 2) {
+            intent = INTENTS.BUILDING;
+        } else if (m.cursorMoves > 3 && total < 5) {
+            intent = INTENTS.EXPLORING;
+        } else if (total === 0) {
+            intent = INTENTS.EXPLORING;
         } else {
-            newIntent = this._currentIntent; // no change
+            intent = this._currentIntent;
         }
 
-        // Only emit when intent actually changes
-        if (newIntent.key !== this._currentIntent.key) {
+        if (intent.key !== this._currentIntent.key) {
             this._previousIntent = this._currentIntent;
-            this._currentIntent = newIntent;
-            if (this._onIntentChange) {
-                this._onIntentChange(newIntent);
-            }
+            this._currentIntent = intent;
+            if (this._onIntentChange) this._onIntentChange(intent);
         }
 
-        // Reset metrics for next window
         this._metrics = this._freshMetrics();
     }
 
-    /** Get the current detected intent */
     getCurrentIntent() {
         return this._currentIntent;
     }
 
-    /** Get previous intent (for transition animations) */
     getPreviousIntent() {
         return this._previousIntent;
     }
 }
 
-// Singleton instance
 const intentDetector = new IntentDetector();
 
 export { INTENTS, intentDetector };

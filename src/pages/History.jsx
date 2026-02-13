@@ -1,124 +1,99 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Code2, Clock, Users, ArrowRight, MoreHorizontal } from 'lucide-react';
-import { authFetch } from '../services/authService';
+import { Clock, Search, ArrowRight, Trash2, Calendar, Users } from 'lucide-react';
 
-/**
- * History Page - Timeline View
- */
 export function History() {
     const navigate = useNavigate();
-    const [meetings, setMeetings] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [filter, setFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    // Placeholder data
-    const placeholderMeetings = [
-        { id: 1, name: 'React Component Development', date: 'Today', time: '10:00 AM', duration: '2h 15m', participants: 5, roomId: 'abc123' },
-        { id: 2, name: 'Backend API Review', date: 'Yesterday', time: '3:00 PM', duration: '1h 30m', participants: 3, roomId: 'def456' },
-        { id: 3, name: 'Project Planning', date: 'Jan 30', time: '2:00 PM', duration: '3h 00m', participants: 8, roomId: 'ghi789' },
-        { id: 4, name: 'Bug Fix Session', date: 'Jan 29', time: '11:00 AM', duration: '45m', participants: 2, roomId: 'jkl012' },
+    // placeholder data - will be from API later
+    const sessions = [
+        { id: 1, name: 'Team Standup', roomId: 'ABC123', date: '2024-01-31T10:00:00', participants: 5, duration: '45 min' },
+        { id: 2, name: 'Code Review', roomId: 'DEF456', date: '2024-01-30T15:00:00', participants: 3, duration: '1h 20m' },
+        { id: 3, name: 'Planning Session', roomId: 'GHI789', date: '2024-01-29T14:00:00', participants: 8, duration: '2h' },
+        { id: 4, name: 'Bug Fix Sprint', roomId: 'JKL012', date: '2024-01-28T11:00:00', participants: 4, duration: '3h 15m' },
     ];
 
-    useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await authFetch('/users/rooms');
-                if (response.ok) {
-                    const data = await response.json();
-                    setMeetings(data.rooms || data || []);
-                } else {
-                    setMeetings(placeholderMeetings);
-                }
-            } catch (err) {
-                setMeetings(placeholderMeetings);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchHistory();
-    }, []);
+    const filtered = sessions.filter(s =>
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.roomId.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-    const handleRejoin = (roomId) => {
-        navigate(`/room/${roomId}`);
+    const formatDate = (dateStr) => {
+        const d = new Date(dateStr);
+        const now = new Date();
+        const diff = now - d;
+
+        if (diff < 86400000 && d.getDate() === now.getDate()) return 'Today';
+        if (diff < 172800000) return 'Yesterday';
+
+        return d.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+        });
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-8 lg:p-12">
-            <div className="mb-12 flex items-baseline justify-between">
+        <div className="max-w-5xl mx-auto p-8 lg:p-12">
+            <div className="mb-10 flex items-start justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-text-primary mb-2">Session History</h1>
-                    <p className="text-text-secondary text-sm">Timeline of your collaboration contributions.</p>
-                </div>
-
-                {/* Minimal Filter Tabs */}
-                <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
-                    {['all', 'week', 'month'].map((f) => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-all ${filter === f
-                                ? 'bg-panel-bg text-text-primary shadow-sm border border-white/5'
-                                : 'text-text-secondary hover:text-text-primary'
-                                }`}
-                        >
-                            {f}
-                        </button>
-                    ))}
+                    <h1 className="text-3xl font-semibold text-text-primary mb-2 tracking-tight">History</h1>
+                    <p className="text-text-secondary text-base">Your past collaboration sessions.</p>
                 </div>
             </div>
 
-            {isLoading ? (
-                <div className="space-y-4 animate-pulse">
-                    {[1, 2, 3].map(i => <div key={i} className="h-20 bg-white/5 rounded-lg w-full" />)}
-                </div>
-            ) : (
-                <div className="relative border-l border-white/10 ml-3 space-y-8 pl-8 py-2">
-                    {/* Timeline Items */}
-                    {(meetings.length > 0 ? meetings : placeholderMeetings).map((meeting, idx) => (
-                        <div key={meeting.id || idx} className="relative group">
-                            {/* Timeline Dot */}
-                            <div className="absolute -left-[37px] top-1.5 w-4 h-4 rounded-full bg-editor-bg border border-white/10 flex items-center justify-center">
-                                <div className="w-1.5 h-1.5 rounded-full bg-text-tertiary group-hover:bg-accent transition-colors" />
+            {/* search */}
+            <div className="relative mb-8 max-w-md">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
+                <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search sessions..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-panel-bg border border-white/5 rounded-xl text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-accent/50 focus:border-accent/50 transition-all text-sm font-ui"
+                />
+            </div>
+
+            <div className="space-y-1">
+                {filtered.length === 0 ? (
+                    <div className="text-center py-16">
+                        <Clock className="w-8 h-8 text-text-faint mx-auto mb-4" />
+                        <p className="text-text-secondary text-sm">
+                            {searchTerm ? 'No matching sessions' : 'No sessions yet'}
+                        </p>
+                    </div>
+                ) : (
+                    filtered.map(s => (
+                        <div
+                            key={s.id}
+                            className="group flex items-center justify-between py-4 px-4 -mx-4 rounded-lg hover:bg-white/[0.02] transition-colors cursor-pointer border border-transparent hover:border-white/5"
+                            onClick={() => navigate(`/room/${s.roomId}`)}
+                        >
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-text-faint group-hover:text-text-secondary transition-colors shrink-0">
+                                    <Calendar className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors truncate">{s.name}</h3>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                        <span className="text-xs text-text-secondary font-code">{s.roomId}</span>
+                                        <span className="text-text-faint">·</span>
+                                        <span className="text-xs text-text-secondary">{formatDate(s.date)}</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-1">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <span className="text-xs font-mono text-text-secondary">{meeting.date || 'Unknown'} • {meeting.time || '00:00'}</span>
-                                        <span className="w-1 h-1 rounded-full bg-white/10" />
-                                        <span className="text-xs text-text-tertiary">{meeting.duration}</span>
-                                    </div>
-                                    <h3 className="text-base font-medium text-text-primary group-hover:text-accent transition-colors cursor-pointer" onClick={() => handleRejoin(meeting.roomId)}>
-                                        {meeting.name || 'Untitled Session'}
-                                    </h3>
+                            <div className="flex items-center gap-6 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+                                    <Users className="w-3.5 h-3.5" />
+                                    <span>{s.participants}</span>
                                 </div>
-
-                                <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 duration-200">
-                                    <div className="flex -space-x-2">
-                                        {[...Array(Math.min(3, meeting.participants || 1))].map((_, i) => (
-                                            <div key={i} className="w-6 h-6 rounded-full bg-panel-bg border border-white/10 flex items-center justify-center text-[10px] text-text-secondary">
-                                                <Users className="w-3 h-3" />
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <button
-                                        onClick={() => handleRejoin(meeting.roomId)}
-                                        className="text-xs font-medium text-text-primary hover:text-accent transition-colors flex items-center gap-1"
-                                    >
-                                        Open <ArrowRight className="w-3 h-3" />
-                                    </button>
-
-                                    <button className="text-text-secondary hover:text-text-primary">
-                                        <MoreHorizontal className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <span className="text-xs text-text-faint">{s.duration}</span>
+                                <ArrowRight className="w-4 h-4 text-text-secondary" />
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                    ))
+                )}
+            </div>
         </div>
     );
 }
